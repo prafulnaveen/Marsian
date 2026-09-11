@@ -1,4 +1,4 @@
-# ADR-013 — Choice of Google Cloud Dataflow for Stream Processing and ML
+# ADR-013 — Choice of Google Cloud Dataflow for Stream Processing
 
 ## Context
 
