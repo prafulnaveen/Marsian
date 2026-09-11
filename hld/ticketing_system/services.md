@@ -2,29 +2,33 @@
 
 > This file list microservices running to facilitate the ticketing system.
 
-Different micoservices and their purpose is listed in table below
+**Different micoservices and their purpose is listed in table below**
 
-
-
-| # | Service Name                    | Service Description                            |
-| - | ------------------------------- | ---------------------------------------------- |
-| 1 | Auth and Visitor Identity Check | For Authenticating the logged in user or Guest |
-|   |                                 |                                                |
-
-
+| # | Area | Service Name | Service Description |
+| --- | --- | --- | --- |
+| 1 | Clients | Web/Mobile Booking App | Bookign tickets via web or mobile application. |
+| 2 |   | Admin UI | Admin UI for admin funcationlaity - updating promotions, overriding normal processes etc |
+| 3 |   | GateScan | Validating tikcets at the entry gates (main entry gates, attraction/ride/animal farm entry gates) |
+| 4 | Api Gateway | Api Gateway service | Integrating all microservices, routing, rate limiting etc |
+| 5 | Core components | Auth & Identity Service | Provies authentication and Validates the identity |
+| 6 |   | Booking Service | Facilitates the booking of the tikcet for the estate. Provides various option of tikcet - individual, family, retunrn vistor etc. Manages carts and checkouts.. |
+| 7 |   | Catalogue Service | Provide the catalogue of diffrenet tickets avaiable to purchase along with their price, ongoing promotions |
+| 8 |   | Loyality Service | Provide the benefits and points related to loyality and repeat visit tracking |
+| 9 |   | Payment Service | Interfaces with the external PCI complaint Payment Providers |
+| 10 |   | Ticket Issuance service | Generates Qr/barcode, e-ticket |
+| 11 |   | Notification Service | Notifies the client via mail/sms/whatapp |
+| 12 |   | Entry Vallidation Service | Checks the validity of the tikcet presented at the gate |
+| 13 |   | Reporting Service | Reporting on the daily, weekly Sales |
+| 14 | Data Stores | Transactional DB | Database for storing transactional data |
+| 15 |   | Cart and Session Cache | Fast db for quick lookup |
 
 ---
 
-
-
-#### Below diagram denotes the interaction between these services
+#### **Below diagram denotes the interaction between these services**
 
 ---
-
-
 
 ```mermaid
-
 flowchart TB
 
     subgraph CLIENTS["Client Channels"]
@@ -39,14 +43,14 @@ flowchart TB
 
     subgraph CORE["Ticketing Service - Core Components"]
         AUTH["Auth & Visitor Identity Service\n(login, guest checkout)"]
-        CATALOG["Catalog & Pricing Service\n(ticket types, family pass rules, promotions)"]
-        BOOKING["Order / Booking Service\n(cart, checkout orchestration)"]
+        CATALOG["Catalog\n(ticket types, family pass rules, promotions)"]
+        BOOKING["Booking Service\n(cart, checkout orchestration)"]
         PAYMENT["Payment Service\n(wraps external payment gateway)"]
         ISSUANCE["Ticket Issuance Service\n(generates QR/barcode, e-ticket)"]
         VALIDATION["Entry Validation Service\n(scan verification, anti-fraud/reuse check)"]
-        LOYALTY["Loyalty & Returning-Visitor Service\n(points, repeat-visit tracking)"]
+        LOYALTY["Loyalty Service\n(points, repeat-visit tracking)"]
         NOTIFY["Notification Service\n(email/SMS confirmations, reminders)"]
-        REPORTING["Sales & Attendance Reporting"]
+        REPORTING["Sales Reporting"]
     end
 
     subgraph EXTERNAL["External / Shared Platform"]
@@ -88,7 +92,4 @@ flowchart TB
     TXNDB --> REPORTING
     REPORTING --> DATAPLATFORM
     VALIDATION -->|"entry scan events"| DATAPLATFORM
-
-
-
-```
+````
