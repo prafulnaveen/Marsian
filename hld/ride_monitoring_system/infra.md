@@ -2,90 +2,81 @@
 
 > This file contains the cloud infra components needed to run the microservice for operating the ride monitoring service.
 
+## Infrastructure Components Inventory
+
+| # | Area | Component Name | Usages |
+|---|------|-----------------|--------|
+| 1 | Ride Sensors | Usage Counters | Track riders per cycle and total cycle counts |
+| 2 | Ride Sensors | Wear / Vibration Sensors | Monitor structural and mechanical stress indicators |
+| 3 | Ride Sensors | Safety Interlock Sensors | Monitor restraint status and e-stop triggers |
+| 4 | Ride Monitoring | Telemetry Ingestion Service | Normalize and aggregate sensor data streams |
+| 5 | Ride Monitoring | Pub/Sub | Stream telemetry events to downstream processors |
+| 6 | Ride Monitoring | Dataflow | Process streams, write to BigQuery, check thresholds, emit alerts |
+| 7 | Ride Monitoring | BigQuery | Persist historical count, vibration, and temperature data |
+| 8 | Ride Monitoring | Looker Studio | Create trend dashboards for monitoring |
+| 9 | Operations Layer | Cloud Load Balancer | Distribute incoming traffic from users |
+| 10 | Operations Layer | Cloud Armor | Provide DDoS protection and security policies |
+| 11 | Operations Layer | API Gateway | Route and authenticate API requests |
+| 12 | Operations Layer | Operations API (GKE) | Manage operations and dispatch alerts |
+| 13 | Operations Layer | Cloud SQL (PostgreSQL) | Persist vet visits, animal/enclosure records, and status |
+| 14 | Operations Layer | Firebase Cloud Messaging | Send push notifications to mobile clients |
+| 15 | Client Channels | Ride Ops Mobile/Web App | Access ride data and receive notifications |
+| 16 | Client Channels | Maintenance Technician UI | Access maintenance data and receive notifications |
+| 17 | Client Channels | Estate Admin Console | Access system data and receive notifications |
+
+
+
+**Digramatic View of Compotents and Connection between them**
+
+---
+
 ```mermaid
 flowchart TB
 
-    subgraph EDGE["Estate Edge - Rides (patchy WiFi)"]
-        USAGESENSOR["Usage Counters"]
-        WEARSENSOR["Wear / Vibration Sensors"]
-        SAFETYSENSOR["Safety Interlock Sensors"]
-        MQTTBROKER["MQTT Broker\n(self-hosted, e.g. EMQX on GCE\n- Cloud IoT Core is retired)"]
+    subgraph SENSORS["Ride Sensors (per ride)"]
+        USAGESENSOR["Usage Counters\n(riders per cycle, cycle count)"]
+        WEARSENSOR["Wear / Vibration Sensors\n(structural & mechanical stress)"]
+        SAFETYSENSOR["Safety Interlock Sensors\n(restraints, e-stops)"]
     end
 
-    subgraph USERS["Users"]
-        RIDEOPS["Ride Ops Staff\n(mobile app)"]
-        MAINT["Maintenance Technician\n(web console)"]
+    subgraph CORE["Ride Monitoring"]
+        INGEST["Telemetry Ingestion Service\n(normalizes sensor)"]
+        PUBSUB["Pub/Sub\n(telemetry ingestion)"]
+        DATAFLOW["Dataflow\n(stream processing:\nBigQuery writes + threshold/anomaly checks + alert emit)"]
+        BQ["BigQuery\n(count, vibration, temperature)"]
+        LOOKER["Looker Studio\n(trend dashboards)"]
+
     end
 
-    subgraph GCPEDGE["GCP - Edge / Security"]
+    subgraph GCPOPS["GCP - Operations Layer"]
         LB["Cloud Load Balancer"]
         ARMOR["Cloud Armor"]
-        APIGW["Apigee / API Gateway"]
+        APIGW["API Gateway"]
+        OPSAPI["Operations API\n(GKE)"]
+        CLOUDSQL["Cloud SQL (PostgreSQL)\nVet visits, animal/enclosure records, status"]
+        FCM["Firebase Cloud Messaging\n(push notifications)"]
     end
 
-    subgraph GCPSTREAM["GCP - Eventing & ML"]
-        PUBSUB["Pub/Sub\n(usage & sensor telemetry)"]
-        DATAFLOW["Dataflow\n(stream processing, threshold checks)"]
-        VERTEXAI["Vertex AI\n(anomaly detection on wear/vibration trends)"]
-        FUNCTIONS["Cloud Functions\n(real-time safety alert triggers)"]
+    subgraph CLIENTS["Client Channels"]
+        RIDEOPSUI["Ride Ops Mobile/Web App"]
+        MAINTUI["Maintenance Technician UI"]
+        ADMINUI["Estate Admin Console"]
     end
 
-    subgraph GCPCOMPUTE["GCP - Application Layer (Cloud Run / GKE)"]
-        SVC_USAGE["Usage Analytics Service"]
-        SVC_SAFETY["Safety Monitoring Service"]
-        SVC_MAINT["Maintenance Scheduling Service"]
-        SVC_INSPECT["Inspection & Compliance Service"]
-        SVC_ALERT["Alerting Service"]
-        SVC_NOTIFY["Notification Service\n(FCM push / SMS)"]
-    end
-
-    subgraph GCPDATA["GCP - Data Layer"]
-        CLOUDSQL["Cloud SQL (PostgreSQL)\nRides / Usage / Maintenance / Inspections"]
-        GCS["Cloud Storage\nInspection certificates & documents"]
-        SECRETS["Secret Manager"]
-    end
-
-    subgraph GCPANALYTICS["GCP - Analytics"]
-        BQ["BigQuery\nCentral analytics warehouse"]
-        LOOKER["Looker Studio\nUsage & safety dashboards"]
-    end
-
-    USAGESENSOR --> MQTTBROKER
-    WEARSENSOR --> MQTTBROKER
-    SAFETYSENSOR --> MQTTBROKER
-    MQTTBROKER --> PUBSUB
-
-    RIDEOPS --> LB
-    MAINT --> LB
-    LB --> ARMOR --> APIGW
-
-    APIGW --> SVC_USAGE
-    APIGW --> SVC_SAFETY
-    APIGW --> SVC_MAINT
-    APIGW --> SVC_INSPECT
-
-    PUBSUB --> DATAFLOW
-    DATAFLOW --> SVC_USAGE
-    DATAFLOW -->|"wear/vibration series"| VERTEXAI
-    VERTEXAI -->|"anomaly scores"| SVC_SAFETY
-
-    DATAFLOW --> FUNCTIONS
-    FUNCTIONS --> SVC_ALERT
-    SVC_SAFETY --> SVC_ALERT
-    SVC_ALERT --> SVC_NOTIFY
-    SVC_NOTIFY --> RIDEOPS
-    SVC_NOTIFY --> MAINT
-
-    SVC_SAFETY --> SVC_MAINT
-
-    SVC_USAGE --> CLOUDSQL
-    SVC_SAFETY --> CLOUDSQL
-    SVC_MAINT --> CLOUDSQL
-    SVC_INSPECT --> CLOUDSQL
-    SVC_INSPECT --> GCS
-    SVC_MAINT --> SECRETS
-
-    CLOUDSQL --> BQ
-    DATAFLOW --> BQ
-    BQ --> LOOKER
+    USAGESENSOR --> INGEST
+    WEARSENSOR --> INGEST
+    SAFETYSENSOR --> INGEST
+    INGEST --> PUBSUB --> DATAFLOW
+    DATAFLOW --> BQ --> LOOKER
+    DATAFLOW -->|"alert on threshold breach"| OPSAPI
+    
+    RIDEOPSUI --> LB
+    MAINTUI --> LB
+    ADMINUI --> LB
+    LB --> ARMOR --> APIGW --> OPSAPI
+    OPSAPI --> CLOUDSQL
+    OPSAPI --> FCM
+    FCM --> RIDEOPSUI
+    FCM --> MAINTUI
+    FCM --> ADMINUI
 ```

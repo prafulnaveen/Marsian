@@ -2,20 +2,32 @@
 
 > This file contains the services required to run the Animal Monitoring System.
 
+## Service Inventory
 
+| # | Area | Service Name | Usages |
+| --- | --- | --- | --- |
+| 1 | Enclosure Sensors | Health Sensors | Monitor weight, temperature, water quality per enclosure |
+| 2 | Enclosure Sensors | Smart Feeders | Track food dispensed quantity and consumption rates |
+| 3 | Enclosure Sensors | Cameras | Vision-based population counting and behavior monitoring |
+| 4 | Core | Telemetry Ingestion Service | Normalize and aggregate sensor and camera data streams |
+| 5 | Core | Pub/Sub | Stream telemetry events to downstream processors |
+| 6 | Core | Dataflow | Process streams, evaluate thresholds, detect anomalies, emit alerts |
+| 7 | Core | BigQuery | Persist historical health, feeding, and population data |
+| 8 | Core | Looker Studio | Create welfare and trend dashboards for monitoring |
+| 9 | Core | Operations API + DB | Manage vet visits, animal/enclosure records, alert notifications |
+| 10 | Users | Keeper / Vet App | View records, log vet visits, receive push notifications |
+| 11 | Users | Estate Admin Console | View records, log vet visits, receive push notifications |
+
+
+
+---
+
+**Diagramatic View of the services and the connections**
+
+---
 
 ```mermaid
 flowchart TB
-
-    subgraph CLIENTS["Client Channels"]
-        KEEPERAPP["Keeper Mobile/Web App"]
-        VETUI["Vet / Health Records UI"]
-        ADMINUI["Estate Admin Console"]
-    end
-
-    subgraph EDGE_ENTRY["Entry Point"]
-        APIGW["API Gateway\n(auth, routing)"]
-    end
 
     subgraph SENSORS["Enclosure Sensors (per enclosure)"]
         HEALTHSENSOR["Health Sensors\n(weight scales, temp, water quality for aquatic)"]
@@ -23,63 +35,29 @@ flowchart TB
         CAMERA["Cameras\n(vision-based population counting)"]
     end
 
-    subgraph CORE["Animal Monitoring Service - Core Components"]
+    subgraph CORE["Animal Monitoring - Minimal Services"]
         INGEST["Telemetry Ingestion Service\n(normalizes sensor + camera data)"]
-        HEALTHSVC["Health Monitoring Service\n(per-animal vitals, trend detection)"]
-        FEEDSVC["Feeding Monitoring Service\n(consumption tracking, schedule adherence)"]
-        POPSVC["Population Tracking Service\n(colony/shoal counts - e.g. piranhas)"]
-        VETRECORDS["Vet & Health Records Service\n(diagnoses, treatments, history)"]
-        ALERTSVC["Alerting Service\n(threshold breaches, anomaly detection)"]
-        ENCLOSURESVC["Enclosure & Species Registry\n(enclosure metadata, species profiles)"]
-        NOTIFY["Notification Service\n(push/SMS to keepers)"]
-        REPORTING["Welfare & Ops Reporting"]
+        PUBSUB["Pub/Sub\n(telemetry ingestion)"]
+        DATAFLOW["Dataflow\n(stream processing:\nBigQuery writes + threshold/anomaly checks + alert emit)"]
+        BQ["BigQuery\n(health, feeding, population history)"]
+        LOOKER["Looker Studio\n(welfare & trend dashboards)"]
+
+        OPSAPI["Operations API + DB\n(vet visits, animal/enclosure records,\ncurrent status, alert notifications)"]
     end
 
-    subgraph EXTERNAL["External / Shared Platform"]
-        DATAPLATFORM["Central Data Platform\n(cross-service analytics)"]
-    end
-
-    subgraph STORE["Data Stores"]
-        OPSDB["Operational DB\n(animals, health records, feeding, population)"]
-        MEDIASTORE["Media Store\n(camera images/video for counting & audit)"]
+    subgraph CLIENTS["Users"]
+        KEEPER["Keeper / Vet Console"]
+        ADMINUI["Estate Admin Console"]
     end
 
     HEALTHSENSOR --> INGEST
     FEEDER --> INGEST
     CAMERA --> INGEST
-
-    KEEPERAPP --> APIGW
-    VETUI --> APIGW
-    ADMINUI --> APIGW
-
-    APIGW --> HEALTHSVC
-    APIGW --> FEEDSVC
-    APIGW --> POPSVC
-    APIGW --> VETRECORDS
-    APIGW --> REPORTING
-
-    INGEST --> HEALTHSVC
-    INGEST --> FEEDSVC
-    INGEST --> POPSVC
-    INGEST --> MEDIASTORE
-
-    HEALTHSVC --> ENCLOSURESVC
-    FEEDSVC --> ENCLOSURESVC
-    POPSVC --> ENCLOSURESVC
-
-    HEALTHSVC --> ALERTSVC
-    FEEDSVC --> ALERTSVC
-    POPSVC --> ALERTSVC
-    ALERTSVC --> NOTIFY
-    NOTIFY --> KEEPERAPP
-
-    HEALTHSVC --> VETRECORDS
-    VETRECORDS --> OPSDB
-    HEALTHSVC --> OPSDB
-    FEEDSVC --> OPSDB
-    POPSVC --> OPSDB
-
-    OPSDB --> REPORTING
-    REPORTING --> DATAPLATFORM
-    ALERTSVC -->|"alert events"| DATAPLATFORM
+    INGEST --> PUBSUB --> DATAFLOW
+    DATAFLOW --> BQ --> LOOKER
+    DATAFLOW -->|"alert on threshold breach"| OPSAPI
+    OPSAPI -->|"push notification"| KEEPER
+    OPSAPI -->|"push notification"| ADMINUI
+    KEEPER -->|"view records, log vet visits"| OPSAPI
+    ADMINUI -->|"view records, log vet visits"| OPSAPI
 ```
