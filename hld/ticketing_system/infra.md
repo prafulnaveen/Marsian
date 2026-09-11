@@ -2,6 +2,29 @@
 
 > Infra diagram for runnign the different services of the ticketing system
 
+| # | Area | Component Name | Usages |
+| --- | --- | --- | --- |
+| 1 | Edge /Security | Cloud DNS | Name Resolution of the website |
+| 2 |   | Cloud CDN | Cacging the website to display to user for better experience |
+| 3 |   | Cloud Load Balancer | Load Balancing of the request |
+| 4 |   | Cloud Armour | prootection against DDOS/WAF |
+| 5 |   | Apigee | Api Gatewaty for routing, authetication. |
+| 6 | Application Layer | Google Kubernetes Engine(GKE) | Running all microservices |
+| 7 | Data Layer | MemoryStore | Cart and Session Cache |
+| 8 |   | Secret manager | Storing auth keys |
+| 9 |   | Cloud SQL | Transactional Database |
+| 10 |   | Cloud Storage | Storing Receipts/Tickets |
+|   | Analytics | Pubsub | Event streaming  |
+|   |   | DataFlow | Stream Analytics |
+|   |   | BigQuery | Data Warehousing |
+|   |   | Looker | Data/Report Visualization  |
+
+---
+
+**Below diagram show the component to service mapping** 
+
+---
+
 ```mermaid
 flowchart TB
 
@@ -19,9 +42,9 @@ flowchart TB
         APIGW["Apigee / API Gateway\n(auth, throttling, routing)"]
     end
 
-    subgraph GCPCOMPUTE["GCP - Application Layer (Cloud Run / GKE)"]
+    subgraph GCPCOMPUTE["GCP - Application Layer (GKE)"]
         SVC_AUTH["Auth Service"]
-        SVC_CATALOG["Catalog & Pricing Service"]
+        SVC_CATALOG["Catalog Service"]
         SVC_BOOKING["Booking Service"]
         SVC_PAYMENT["Payment Service"]
         SVC_ISSUANCE["Ticket Issuance Service"]
@@ -50,7 +73,7 @@ flowchart TB
     end
 
     subgraph EXTPAY["External"]
-        PAYGATEWAY["Payment Gateway\n(Stripe / Adyen)"]
+        PAYGATEWAY["External Payment Gateway Provider"]
     end
 
     VISITOR --> DNS --> CDN --> LB
@@ -76,6 +99,7 @@ flowchart TB
     SVC_VALIDATE --> CLOUDSQL
     SVC_BOOKING --> CLOUDSQL
 
+    GATE --> APIGW
     GATE --> MQTTBROKER --> IOTBRIDGE --> PUBSUB
     SVC_VALIDATE -->|"scan events"| PUBSUB
     SVC_BOOKING -->|"order events"| PUBSUB
