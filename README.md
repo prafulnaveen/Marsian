@@ -83,3 +83,19 @@ The system is designed to be robust and scalable, with a focus on reliability in
 └── video/
    └── readme.md
 ```
+
+# Note
+
+**File**
+
+`0_context_layer_diagram:` Contains the high level diagram and explanation of multiple system to be built for the system
+
+`problem_statement.md:` Contains the problem statement, constraint and challenges
+
+**Folder**
+
+`requirements/:` Contains requiremetns broken down into business Goal, Drivers, Challanges, FR, NFR, Risk and Migitations
+
+`hld/`: contains High level Design for the different systems to be built for the solutions.
+
+`adrs/:` Contains the Archectural Decision Records.
