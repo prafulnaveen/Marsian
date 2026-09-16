@@ -46,7 +46,7 @@ The system is designed to be robust and scalable, with a focus on reliability in
 │   ├── ADR-016-MachineLearning_Jobs.md
 │   └── readme.md
 ├── hld/
-│   ├── context_layer_diagram.md
+│   ├── 0_context_layer_diagram.md
 │   ├── readme.md
 │   ├── 1_ticketing_system/
 │   │   ├── infra.md
@@ -70,7 +70,7 @@ The system is designed to be robust and scalable, with a focus on reliability in
 │   │   ├── 4.7_Ride_Level_Demand_Prediction.md
 │   │   ├── 4.8_Marketing_Content_Generation.md
 │   │   └── 4.9_Staffing_Optimization.md
-│   └── DataWarehouse/
+│   └── 5_DataWarehouse/
 │       ├── consumption.md
 │       ├── data_products.md
 │       └── ingestion.md
